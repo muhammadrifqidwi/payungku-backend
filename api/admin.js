@@ -11,11 +11,17 @@ import {
 import { verifyToken, verifyAdmin } from "../../middleware/auth";
 
 export default async function handler(req, res) {
+  console.log("Connecting DB...");
   await dbConnect();
+
+  console.log("Verifying token...");
   await verifyToken(req, res);
+
+  console.log("Verifying admin...");
   await verifyAdmin(req, res);
 
   const { path, id } = req.query;
+  console.log("Path:", path);
 
   if (req.method === "GET") {
     switch (path) {
@@ -26,6 +32,7 @@ export default async function handler(req, res) {
       case "dashboard-summary":
         return getDashboardSummary(req, res);
       case "users":
+        console.log("Calling getAllUsers...");
         return getAllUsers(req, res);
       case "transactions":
         return getAllTransactions(req, res);
