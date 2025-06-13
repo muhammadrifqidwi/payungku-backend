@@ -1,4 +1,4 @@
-const Location = require("../models/Location");
+const Location = require("../models/location");
 
 exports.getLocations = async (req, res) => {
   try {

@@ -1,6 +1,6 @@
 const Transaction = require("../models/transaction");
-const User = require("../models/User");
-const Location = require("../models/Location");
+const User = require("../models/user");
+const Location = require("../models/location");
 const midtransClient = require("midtrans-client");
 const crypto = require("crypto");
 

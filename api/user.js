@@ -1,26 +1,77 @@
-const express = require("express");
-const router = express.Router();
-const { register, login } = require("../controllers/authController");
-const {
-  updateProfile,
-  getProfile,
+import dbConnect from "../lib/dbConnect";
+import {
+  register,
+  login,
   changePassword,
+  getProfile,
   getUserById,
   getAllUsers,
+  updateProfile,
   deletePhoto,
-} = require("../controllers/userController");
-const upload = require("../middleware/upload");
-const { verifyToken, verifyAdmin } = require("../middleware/auth");
+} from "../controllers/userController";
+import { verifyToken, verifyAdmin } from "../middleware/auth";
 
-router.post("/register", register);
-router.post("/login", login);
+export default async function handler(req, res) {
+  await dbConnect();
+  const { path, id } = req.query;
 
-router.put("/profile", verifyToken, upload.single("photo"), updateProfile);
-router.put("/change-password", verifyToken, changePassword);
+  try {
+    // POST
+    if (req.method === "POST") {
+      if (path === "register") return register(req, res);
+      if (path === "login") return login(req, res);
+      return res.status(404).json({ message: "Invalid POST path" });
+    }
 
-router.get("/me", verifyToken, getProfile);
-router.get("/:id", getUserById);
-router.get("/", verifyToken, verifyAdmin, getAllUsers);
+    // PUT
+    if (req.method === "PUT") {
+      if (path === "profile") {
+        await verifyToken(req, res);
+        // NOTE: skip file upload parsing; use cloud upload from frontend
+        return updateProfile(req, res);
+      }
+      if (path === "change-password") {
+        await verifyToken(req, res);
+        return changePassword(req, res);
+      }
+      return res.status(404).json({ message: "Invalid PUT path" });
+    }
 
-router.delete("/photo", verifyToken, deletePhoto);
-module.exports = router;
+    // GET
+    if (req.method === "GET") {
+      if (path === "me") {
+        await verifyToken(req, res);
+        return getProfile(req, res);
+      }
+
+      if (path === "admin-all") {
+        await verifyToken(req, res);
+        await verifyAdmin(req, res);
+        return getAllUsers(req, res);
+      }
+
+      if (path === "by-id" && id) {
+        req.params = { id };
+        return getUserById(req, res);
+      }
+
+      return res.status(404).json({ message: "Invalid GET path" });
+    }
+
+    // DELETE
+    if (req.method === "DELETE") {
+      if (path === "photo") {
+        await verifyToken(req, res);
+        return deletePhoto(req, res);
+      }
+      return res.status(404).json({ message: "Invalid DELETE path" });
+    }
+
+    res.status(405).end(`Method ${req.method} Not Allowed`);
+  } catch (err) {
+    console.error("USER API ERROR:", err);
+    res
+      .status(500)
+      .json({ message: "Internal Server Error", error: err.message });
+  }
+}

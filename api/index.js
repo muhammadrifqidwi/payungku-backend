@@ -1,8 +1,7 @@
-const express = require("express");
-const router = express.Router();
+export default function handler(req, res) {
+  if (req.method === "GET") {
+    return res.status(200).send("Main API route works!");
+  }
 
-router.get("/", (req, res) => {
-  res.send("Main API route works!");
-});
-
-module.exports = router;
+  res.status(405).end(`Method ${req.method} Not Allowed`);
+}

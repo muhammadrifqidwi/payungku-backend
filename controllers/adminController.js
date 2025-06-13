@@ -1,6 +1,6 @@
 const User = require("../models/user");
 const Transaction = require("../models/transaction");
-const Location = require("../models/Location");
+const Location = require("../models/location");
 
 exports.getAllUsers = async (req, res) => {
   try {
