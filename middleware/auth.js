@@ -3,25 +3,25 @@ const User = require("../models/user");
 
 // Untuk Vercel: tanpa `next()`, panggil sebagai fungsi biasa
 const verifyToken = async (req, res) => {
-  const token = req.headers.authorization?.split(" ")[1];
-  if (!token) {
-    res.status(401).json({ message: "Tidak ada token" });
+  const authHeader = req.headers.authorization;
+  console.log("Authorization Header:", req.headers.authorization);
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    res
+      .status(401)
+      .json({ message: "Token tidak ditemukan atau format salah" });
     throw new Error("Token not provided");
   }
 
+  const token = authHeader.split(" ")[1];
+
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id).select("-password");
-    if (!user) {
-      res.status(404).json({ message: "Pengguna tidak ditemukan" });
-      throw new Error("User not found");
-    }
-
-    req.user = user;
-  } catch (err) {
-    console.error("Token error:", err);
+    req.user = await User.findById(decoded.id).select("-password");
+    if (!req.user) throw new Error("User not found");
+  } catch (error) {
     res.status(401).json({ message: "Token tidak valid" });
-    throw err;
+    throw error;
   }
 };
 
