@@ -12,8 +12,9 @@ const {
 const { verifyToken, verifyAdmin } = require("../middleware/auth");
 
 router.get("/dashboard", verifyToken, verifyAdmin, getDashboardData);
-router.get("/dashboard", verifyToken, verifyAdmin, getDashboardStats);
-router.get("/dashboard", verifyToken, verifyAdmin, getDashboardSummary);
+router.get("/dashboard/stats", verifyToken, verifyAdmin, getDashboardStats);
+router.get("/dashboard/summary", verifyToken, verifyAdmin, getDashboardSummary);
+
 router.get("/users", verifyToken, verifyAdmin, getAllUsers);
 router.get("/transactions", verifyToken, verifyAdmin, getAllTransactions);
 router.get("/locations", verifyToken, verifyAdmin, getAllLocations);
