@@ -1,4 +1,4 @@
-import dbConnect from "../lib/dbConnect";
+import dbConnect from "../../lib/dbConnect";
 import {
   register,
   login,
@@ -7,58 +7,70 @@ import {
   sendOtp,
   verifyOtp,
   resetPassword,
-} from "../controllers/authController";
+} from "../../controllers/authController";
 import {
   updateProfile,
   setPhoneAndPassword,
-} from "../controllers/userController";
-import { verifyToken } from "../middleware/auth";
+} from "../../controllers/userController";
+import { verifyToken } from "../../middleware/auth";
 
 export default async function handler(req, res) {
   await dbConnect();
-  const { path } = req.query;
+
+  const { url, method } = req;
+  const path = url.split("?")[0]; // to ignore query string
 
   try {
-    if (req.method === "POST") {
-      switch (path) {
-        case "register":
-          return register(req, res);
-        case "login":
-          return login(req, res);
-        case "google-login":
-          return googleLogin(req, res);
-        case "forgot-check":
-          return forgotCheck(req, res);
-        case "send-otp":
-          return sendOtp(req, res);
-        case "verify-otp":
-          return verifyOtp(req, res);
-        case "reset-password":
-          return resetPassword(req, res);
-        default:
-          return res.status(404).json({ message: "Invalid POST path" });
-      }
+    // REGISTER
+    if (method === "POST" && path === "/api/auth/register") {
+      return register(req, res);
     }
 
-    if (req.method === "PUT") {
-      if (path === "profile") {
-        await verifyToken(req, res);
-        return updateProfile(req, res);
-      }
-
-      if (path === "set-password") {
-        await verifyToken(req, res);
-        return setPhoneAndPassword(req, res);
-      }
-
-      return res.status(404).json({ message: "Invalid PUT path" });
+    // LOGIN
+    if (method === "POST" && path === "/api/auth/login") {
+      return login(req, res);
     }
 
-    res.status(405).json({ message: `Method ${req.method} Not Allowed` });
+    // GOOGLE LOGIN
+    if (method === "POST" && path === "/api/auth/google-login") {
+      return googleLogin(req, res);
+    }
+
+    // FORGOT PASSWORD STEP 1
+    if (method === "POST" && path === "/api/auth/forgot-check") {
+      return forgotCheck(req, res);
+    }
+
+    // FORGOT PASSWORD STEP 2
+    if (method === "POST" && path === "/api/auth/send-otp") {
+      return sendOtp(req, res);
+    }
+
+    // FORGOT PASSWORD STEP 3
+    if (method === "POST" && path === "/api/auth/verify-otp") {
+      return verifyOtp(req, res);
+    }
+
+    // RESET PASSWORD
+    if (method === "POST" && path === "/api/auth/reset-password") {
+      return resetPassword(req, res);
+    }
+
+    // SET PASSWORD (Google Login user)
+    if (method === "PUT" && path === "/api/auth/set-password") {
+      await verifyToken(req, res);
+      return setPhoneAndPassword(req, res);
+    }
+
+    // UPDATE PROFILE
+    if (method === "PUT" && path === "/api/auth/profile") {
+      await verifyToken(req, res);
+      return updateProfile(req, res);
+    }
+
+    return res.status(404).json({ message: "Endpoint tidak ditemukan" });
   } catch (error) {
-    console.error("AUTH ERROR:", error);
-    res
-      .status(500)
-      .json({ message: "Internal Server Error", error: error.message });
+    console.error("AUTH API ERROR:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 }
