@@ -7,8 +7,8 @@ import {
   getDashboardSummary,
   getDashboardData,
   deleteUser,
-} from "../../controllers/adminController";
-import { verifyToken, verifyAdmin } from "../../middleware/auth";
+} from "../controllers/adminController";
+import { verifyToken, verifyAdmin } from "../middleware/auth";
 
 export default async function handler(req, res) {
   console.log("Connecting DB...");
