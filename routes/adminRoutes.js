@@ -1,6 +1,5 @@
-const express = require("express");
-const router = express.Router();
-const {
+import dbConnect from "../../lib/dbConnect";
+import {
   getAllUsers,
   getAllTransactions,
   getAllLocations,
@@ -8,17 +7,43 @@ const {
   getDashboardSummary,
   getDashboardData,
   deleteUser,
-} = require("../controllers/adminController");
-const { verifyToken, verifyAdmin } = require("../middleware/auth");
+} from "../../controllers/adminController";
+import { verifyToken, verifyAdmin } from "../../middleware/auth";
 
-router.get("/dashboard", verifyToken, verifyAdmin, getDashboardData);
-router.get("/dashboard/stats", verifyToken, verifyAdmin, getDashboardStats);
-router.get("/dashboard/summary", verifyToken, verifyAdmin, getDashboardSummary);
+export default async function handler(req, res) {
+  await dbConnect();
+  await verifyToken(req, res);
+  await verifyAdmin(req, res);
 
-router.get("/users", verifyToken, verifyAdmin, getAllUsers);
-router.get("/transactions", verifyToken, verifyAdmin, getAllTransactions);
-router.get("/locations", verifyToken, verifyAdmin, getAllLocations);
+  const { path, id } = req.query;
 
-router.delete("/users/:id", verifyToken, verifyAdmin, deleteUser);
+  if (req.method === "GET") {
+    switch (path) {
+      case "dashboard":
+        return getDashboardData(req, res);
+      case "dashboard-stats":
+        return getDashboardStats(req, res);
+      case "dashboard-summary":
+        return getDashboardSummary(req, res);
+      case "users":
+        return getAllUsers(req, res);
+      case "transactions":
+        return getAllTransactions(req, res);
+      case "locations":
+        return getAllLocations(req, res);
+      default:
+        return res.status(404).json({ message: "Invalid path" });
+    }
+  }
 
-module.exports = router;
+  if (req.method === "DELETE") {
+    if (path === "users" && id) {
+      req.params = { id };
+      return deleteUser(req, res);
+    } else {
+      return res.status(400).json({ message: "Missing or invalid parameters" });
+    }
+  }
+
+  res.status(405).end(`Method ${req.method} Not Allowed`);
+}
