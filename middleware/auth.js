@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const User = require("../models/User");
+const User = require("../models/user");
 
 // Untuk Vercel: tanpa `next()`, panggil sebagai fungsi biasa
 const verifyToken = async (req, res) => {
