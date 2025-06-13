@@ -5,8 +5,12 @@ import {
   updateLocation,
   getLocationById,
 } from "../controllers/locationController";
+import { enableCors } from "../lib/cors";
 
 export default async function handler(req, res) {
+  const corsHandled = enableCors(req, res);
+  if (corsHandled) return;
+
   await dbConnect();
   const { id } = req.query;
 
