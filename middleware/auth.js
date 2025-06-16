@@ -1,7 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 
-// Untuk Vercel: tanpa `next()`, panggil sebagai fungsi biasa
 const verifyToken = async (req, res) => {
   const authHeader = req.headers.authorization;
   console.log("Authorization Header:", req.headers.authorization);
@@ -19,6 +18,7 @@ const verifyToken = async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = await User.findById(decoded.id).select("-password");
     if (!req.user) throw new Error("User not found");
+    next();
   } catch (error) {
     res.status(401).json({ message: "Token tidak valid" });
     throw error;
