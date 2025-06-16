@@ -1,27 +1,36 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 
-const verifyToken = async (req, res) => {
+const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   console.log("Authorization Header:", req.headers.authorization);
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    res
+    return res
       .status(401)
       .json({ message: "Token tidak ditemukan atau format salah" });
-    throw new Error("Token not provided");
   }
 
   const token = authHeader.split(" ")[1];
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.id).select("-password");
-    if (!req.user) throw new Error("User not found");
+    const user = await User.findById(decoded.id).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ message: "User tidak ditemukan" });
+    }
+
+    req.user = user;
+
+    console.log("Header:", authHeader);
+    console.log("Decoded:", decoded);
+    console.log("User found:", req.user);
+
     next();
   } catch (error) {
-    res.status(401).json({ message: "Token tidak valid" });
-    throw error;
+    console.error("VerifyToken Error:", error);
+    return res.status(401).json({ message: "Token tidak valid" });
   }
 };
 

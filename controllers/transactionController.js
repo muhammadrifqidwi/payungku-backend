@@ -75,8 +75,8 @@ exports.createTransaction = async (req, res) => {
         phone: fullUser.phone,
       },
       callbacks: {
-        finish: "http://localhost:5173/dashboard",
-        error: "http://localhost:5173/payment/error",
+        finish: "https://payungku.vercel.app/dashboard",
+        error: "https://payungku.vercel.app/payment/error",
       },
     };
 
@@ -175,8 +175,8 @@ exports.getSnapToken = async (req, res) => {
         phone: user.phone,
       },
       callbacks: {
-        finish: "http://localhost:5173/dashboard",
-        error: "http://localhost:5173/payment/error",
+        finish: "https://payungku.vercel.app/dashboard",
+        error: "https://payungku.vercel.app/payment/error",
       },
     };
 
@@ -294,7 +294,7 @@ exports.returnTransaction = async (req, res) => {
           phone: trx.user?.phone || "",
         },
         callbacks: {
-          finish: "http://localhost:5173/transaksi?status=denda-berhasil",
+          finish: "https://payungku.vercel.app/transaksi?status=denda-berhasil",
         },
       });
 
@@ -503,7 +503,7 @@ exports.payPenalty = async (req, res) => {
         phone: trx.user.phone || "",
       },
       callbacks: {
-        finish: "http://localhost:5173/pengembalian/sukses",
+        finish: "https://payungku.vercel.app/pengembalian/sukses",
       },
     };
 
