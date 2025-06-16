@@ -14,7 +14,7 @@ const midtransRoutes = require("./routes/midtransRoutes");
 
 const app = express();
 const corsOptions = {
-  origin: "https://payungku.vercel.app/",
+  origin: "https://payungku.vercel.app",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
