@@ -99,7 +99,6 @@ exports.getDashboardSummary = async (req, res) => {
 
 exports.getDashboardData = async (req, res) => {
   try {
-    // Jalankan query secara parallel untuk performa optimal
     const [
       totalUsers,
       totalAdmins,
@@ -111,17 +110,16 @@ exports.getDashboardData = async (req, res) => {
       User.countDocuments({ role: "user" }),
       User.countDocuments({ role: "admin" }),
       Transaction.countDocuments(),
-      User.find().select("-password").sort({ updatedAt: -1 }).lean(),
+      User.find().select("-password").sort({ updatedAt: -1 }).limit(100).lean(), // ✅ limit 100
       Transaction.find()
         .sort({ createdAt: -1 })
-        .limit(10)
+        .limit(100)
         .populate("user", "name email")
         .populate("location", "name address")
         .lean(),
       Location.find().select("name address").lean(),
     ]);
 
-    // Ambil recent transactions dan active users dari data yang sudah ada
     const recentTransactions = transactions.slice(0, 5);
     const activeUsers = users.slice(0, 4);
 
@@ -137,10 +135,7 @@ exports.getDashboardData = async (req, res) => {
     });
   } catch (err) {
     console.error("Error getting dashboard data:", err);
-    res.status(500).json({
-      message: "Gagal mengambil data dashboard",
-      error: process.env.NODE_ENV === "development" ? err.message : undefined,
-    });
+    res.status(500).json({ message: "Gagal mengambil data dashboard" });
   }
 };
 
