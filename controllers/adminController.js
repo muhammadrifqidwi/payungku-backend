@@ -4,7 +4,11 @@ const Location = require("../models/location");
 
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().limit(10).select("-password");
+    const users = await User.find()
+      .sort({ updatedAt: -1 })
+      .limit(10)
+      .select("-password")
+      .lean();
     res.json(users);
   } catch (err) {
     console.error("Error getting users:", err);
@@ -15,10 +19,11 @@ exports.getAllUsers = async (req, res) => {
 exports.getAllTransactions = async (req, res) => {
   try {
     const transactions = await Transaction.find()
+      .sort({ createdAt: -1 })
+      .limit(10)
       .populate("user", "name email")
       .populate("location", "name address")
-      .limit(10)
-      .sort({ createdAt: -1 });
+      .lean();
     res.json(transactions);
   } catch (err) {
     console.error("Error getting transactions:", err);
@@ -100,42 +105,71 @@ exports.getDashboardSummary = async (req, res) => {
 
 exports.getDashboardData = async (req, res) => {
   try {
-    const [
-      userCount,
-      adminCount,
-      transactionCount,
-      recentUsers,
-      recentTransactions,
-      locations,
-    ] = await Promise.all([
-      User.countDocuments({ role: "user" }),
-      User.countDocuments({ role: "admin" }),
-      Transaction.countDocuments(),
-      User.find().select("-password").sort({ updatedAt: -1 }).limit(100).lean(),
-      Transaction.find()
-        .sort({ createdAt: -1 })
-        .limit(100)
-        .populate("user", "name email")
-        .populate("location", "name address")
-        .lean(),
-      Location.find().select("name address").lean(),
-    ]);
-
     const summary = {
-      totalUsers: userCount,
-      totalAdmins: adminCount,
-      totalTransactions: transactionCount,
-      recentTransactions: recentTransactions.slice(0, 5),
-      activeUsers: recentUsers.slice(0, 4),
-      locations,
-      users: recentUsers,
-      transactions: recentTransactions,
+      totalUsers: 0,
+      totalAdmins: 0,
+      totalTransactions: 0,
+      recentTransactions: [],
+      activeUsers: [],
+      locations: [],
+      users: [],
+      transactions: [],
     };
 
-    res.status(200).json(summary);
+    // Step-by-step (sequential with try-catch each)
+    try {
+      summary.totalUsers = await User.countDocuments({ role: "user" });
+    } catch (e) {
+      console.error("Failed to count users:", e.message);
+    }
+
+    try {
+      summary.totalAdmins = await User.countDocuments({ role: "admin" });
+    } catch (e) {
+      console.error("Failed to count admins:", e.message);
+    }
+
+    try {
+      summary.totalTransactions = await Transaction.countDocuments();
+    } catch (e) {
+      console.error("Failed to count transactions:", e.message);
+    }
+
+    try {
+      const users = await User.find()
+        .select("-password")
+        .sort({ updatedAt: -1 })
+        .limit(50)
+        .lean();
+      summary.users = users;
+      summary.activeUsers = users.slice(0, 4);
+    } catch (e) {
+      console.error("Failed to fetch users:", e.message);
+    }
+
+    try {
+      const transactions = await Transaction.find()
+        .sort({ createdAt: -1 })
+        .limit(50)
+        .populate("user", "name email")
+        .populate("location", "name address")
+        .lean();
+      summary.transactions = transactions;
+      summary.recentTransactions = transactions.slice(0, 5);
+    } catch (e) {
+      console.error("Failed to fetch transactions:", e.message);
+    }
+
+    try {
+      summary.locations = await Location.find().select("name address").lean();
+    } catch (e) {
+      console.error("Failed to fetch locations:", e.message);
+    }
+
+    return res.status(200).json(summary);
   } catch (err) {
-    console.error("Error getting dashboard data:", err);
-    res.status(500).json({
+    console.error("Error in getDashboardData:", err.message);
+    return res.status(500).json({
       message: "Gagal mengambil data dashboard",
       error: process.env.NODE_ENV === "development" ? err.message : undefined,
     });
