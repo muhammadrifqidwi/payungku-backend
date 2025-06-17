@@ -100,17 +100,17 @@ exports.getDashboardSummary = async (req, res) => {
 exports.getDashboardData = async (req, res) => {
   try {
     const [
-      totalUsers,
-      totalAdmins,
-      totalTransactions,
-      users,
-      transactions,
+      userCount,
+      adminCount,
+      transactionCount,
+      recentUsers,
+      recentTransactions,
       locations,
     ] = await Promise.all([
       User.countDocuments({ role: "user" }),
       User.countDocuments({ role: "admin" }),
       Transaction.countDocuments(),
-      User.find().select("-password").sort({ updatedAt: -1 }).limit(100).lean(), // ✅ limit 100
+      User.find().select("-password").sort({ updatedAt: -1 }).limit(100).lean(),
       Transaction.find()
         .sort({ createdAt: -1 })
         .limit(100)
@@ -120,22 +120,24 @@ exports.getDashboardData = async (req, res) => {
       Location.find().select("name address").lean(),
     ]);
 
-    const recentTransactions = transactions.slice(0, 5);
-    const activeUsers = users.slice(0, 4);
-
-    res.json({
-      totalUsers,
-      totalAdmins,
-      totalTransactions,
-      recentTransactions,
-      activeUsers,
+    const summary = {
+      totalUsers: userCount,
+      totalAdmins: adminCount,
+      totalTransactions: transactionCount,
+      recentTransactions: recentTransactions.slice(0, 5),
+      activeUsers: recentUsers.slice(0, 4),
       locations,
-      users,
-      transactions,
-    });
+      users: recentUsers,
+      transactions: recentTransactions,
+    };
+
+    res.status(200).json(summary);
   } catch (err) {
     console.error("Error getting dashboard data:", err);
-    res.status(500).json({ message: "Gagal mengambil data dashboard" });
+    res.status(500).json({
+      message: "Gagal mengambil data dashboard",
+      error: process.env.NODE_ENV === "development" ? err.message : undefined,
+    });
   }
 };
 
