@@ -7,15 +7,20 @@ exports.getAllUsers = async (req, res) => {
     const users = await User.find().select("-password");
     res.json(users);
   } catch (err) {
+    console.error("Error getting users:", err);
     res.status(500).json({ message: "Gagal mengambil data pengguna" });
   }
 };
 
 exports.getAllTransactions = async (req, res) => {
   try {
-    const transactions = await Transaction.find();
+    const transactions = await Transaction.find()
+      .populate("user", "name email")
+      .populate("location", "name address")
+      .sort({ createdAt: -1 });
     res.json(transactions);
   } catch (err) {
+    console.error("Error getting transactions:", err);
     res.status(500).json({ message: "Gagal mengambil data transaksi" });
   }
 };
@@ -25,15 +30,19 @@ exports.getAllLocations = async (req, res) => {
     const locations = await Location.find();
     res.json(locations);
   } catch (err) {
+    console.error("Error getting locations:", err);
     res.status(500).json({ message: "Gagal mengambil data lokasi" });
   }
 };
 
 exports.getDashboardStats = async (req, res) => {
   try {
-    const totalUsers = await User.countDocuments();
-    const totalTransactions = await Transaction.countDocuments();
-    const totalLocations = await Location.countDocuments();
+    // Jalankan semua query secara parallel untuk performa lebih baik
+    const [totalUsers, totalTransactions, totalLocations] = await Promise.all([
+      User.countDocuments(),
+      Transaction.countDocuments(),
+      Location.countDocuments(),
+    ]);
 
     res.json({
       users: totalUsers,
@@ -41,28 +50,38 @@ exports.getDashboardStats = async (req, res) => {
       locations: totalLocations,
     });
   } catch (err) {
-    res.status(500).json({ message: "Gagal mengambil data dashboard" });
+    console.error("Error getting dashboard stats:", err);
+    res.status(500).json({ message: "Gagal mengambil data dashboard stats" });
   }
 };
 
 exports.getDashboardSummary = async (req, res) => {
   try {
-    const totalUsers = await User.countDocuments({ role: "user" });
-    const totalAdmins = await User.countDocuments({ role: "admin" });
-    const totalTransactions = await Transaction.countDocuments();
-
-    const recentTransactions = await Transaction.find()
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .populate("user", "name")
-      .populate("location", "name");
-
-    const activeUsers = await User.find()
-      .sort({ updatedAt: -1 })
-      .limit(4)
-      .select("name email updatedAt");
-
-    const locations = await Location.find().limit(5);
+    // Jalankan query secara parallel
+    const [
+      totalUsers,
+      totalAdmins,
+      totalTransactions,
+      recentTransactions,
+      activeUsers,
+      locations,
+    ] = await Promise.all([
+      User.countDocuments({ role: "user" }),
+      User.countDocuments({ role: "admin" }),
+      Transaction.countDocuments(),
+      Transaction.find()
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .populate("user", "name email")
+        .populate("location", "name address")
+        .lean(), // gunakan lean() untuk performa lebih baik
+      User.find({ role: "user" })
+        .sort({ updatedAt: -1 })
+        .limit(4)
+        .select("name email updatedAt")
+        .lean(),
+      Location.find().limit(5).select("name address").lean(),
+    ]);
 
     res.json({
       totalUsers,
@@ -73,29 +92,38 @@ exports.getDashboardSummary = async (req, res) => {
       locations,
     });
   } catch (err) {
-    res.status(500).json({ message: "Gagal mengambil data dashboard" });
+    console.error("Error getting dashboard summary:", err);
+    res.status(500).json({ message: "Gagal mengambil data dashboard summary" });
   }
 };
 
 exports.getDashboardData = async (req, res) => {
   try {
-    const totalUsers = await User.countDocuments({ role: "user" });
-    const totalAdmins = await User.countDocuments({ role: "admin" });
-    const totalTransactions = await Transaction.countDocuments();
+    // Jalankan query secara parallel untuk performa optimal
+    const [
+      totalUsers,
+      totalAdmins,
+      totalTransactions,
+      users,
+      transactions,
+      locations,
+    ] = await Promise.all([
+      User.countDocuments({ role: "user" }),
+      User.countDocuments({ role: "admin" }),
+      Transaction.countDocuments(),
+      User.find().select("-password").sort({ updatedAt: -1 }).lean(),
+      Transaction.find()
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .populate("user", "name email")
+        .populate("location", "name address")
+        .lean(),
+      Location.find().select("name address").lean(),
+    ]);
 
-    const users = await User.find().select("-password");
-    const transactions = await Transaction.find()
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .populate("user", "name")
-      .populate("location", "name");
-
+    // Ambil recent transactions dan active users dari data yang sudah ada
     const recentTransactions = transactions.slice(0, 5);
-    const activeUsers = users
-      .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
-      .slice(0, 4);
-
-    const locations = await Location.find();
+    const activeUsers = users.slice(0, 4);
 
     res.json({
       totalUsers,
@@ -108,8 +136,11 @@ exports.getDashboardData = async (req, res) => {
       transactions,
     });
   } catch (err) {
-    console.error("Gagal mengambil data dashboard:", err);
-    res.status(500).json({ message: "Gagal mengambil data dashboard" });
+    console.error("Error getting dashboard data:", err);
+    res.status(500).json({
+      message: "Gagal mengambil data dashboard",
+      error: process.env.NODE_ENV === "development" ? err.message : undefined,
+    });
   }
 };
 
@@ -117,17 +148,33 @@ exports.deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Validasi ObjectId format
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ message: "Format ID tidak valid." });
+    }
+
     const deletedUser = await User.findByIdAndDelete(id);
 
     if (!deletedUser) {
       return res.status(404).json({ message: "Pengguna tidak ditemukan." });
     }
 
-    res.json({ message: "Pengguna berhasil dihapus." });
+    // Optional: Hapus juga transaksi yang terkait dengan user ini
+    // await Transaction.deleteMany({ user: id });
+
+    res.json({
+      message: "Pengguna berhasil dihapus.",
+      deletedUser: {
+        id: deletedUser._id,
+        name: deletedUser.name,
+        email: deletedUser.email,
+      },
+    });
   } catch (error) {
-    console.error("Gagal menghapus pengguna:", error.message);
-    res
-      .status(500)
-      .json({ message: "Terjadi kesalahan saat menghapus pengguna." });
+    console.error("Error deleting user:", error);
+    res.status(500).json({
+      message: "Terjadi kesalahan saat menghapus pengguna.",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
   }
 };
