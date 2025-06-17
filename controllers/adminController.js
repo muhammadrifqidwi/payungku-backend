@@ -4,7 +4,7 @@ const Location = require("../models/location");
 
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select("-password");
+    const users = await User.find().limit(10).select("-password");
     res.json(users);
   } catch (err) {
     console.error("Error getting users:", err);
@@ -17,6 +17,7 @@ exports.getAllTransactions = async (req, res) => {
     const transactions = await Transaction.find()
       .populate("user", "name email")
       .populate("location", "name address")
+      .limit(10)
       .sort({ createdAt: -1 });
     res.json(transactions);
   } catch (err) {
