@@ -20,7 +20,7 @@ router.put("/change-password", verifyToken, changePassword);
 
 router.get("/me", verifyToken, getProfile);
 router.get("/:id", getUserById);
-router.get("/", verifyToken, verifyAdmin, getAllUsers);
+router.get("/all-users", verifyToken, verifyAdmin, getAllUsers);
 
 router.delete("/photo", verifyToken, deletePhoto);
 module.exports = router;

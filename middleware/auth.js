@@ -1,9 +1,10 @@
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
 const User = require("../models/user");
 
+// Middleware untuk verifikasi token JWT
 const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
-  console.log("Authorization Header:", req.headers.authorization);
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res
@@ -15,6 +16,12 @@ const verifyToken = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Validasi apakah ID hasil decode adalah ObjectId yang valid
+    if (!mongoose.Types.ObjectId.isValid(decoded.id)) {
+      return res.status(400).json({ message: "ID token tidak valid" });
+    }
+
     const user = await User.findById(decoded.id).select("-password");
 
     if (!user) {
@@ -22,32 +29,28 @@ const verifyToken = async (req, res, next) => {
     }
 
     req.user = user;
-
-    console.log("Header:", authHeader);
-    console.log("Decoded:", decoded);
-    console.log("User found:", req.user);
-
     next();
   } catch (error) {
-    console.error("VerifyToken Error:", error);
+    console.error("VerifyToken Error:", error.message);
     return res.status(401).json({ message: "Token tidak valid" });
   }
 };
 
-const verifyAdmin = async (req, res) => {
+// Middleware untuk verifikasi role admin
+const verifyAdmin = async (req, res, next) => {
   if (!req.user) {
-    res
+    return res
       .status(401)
-      .json({ message: "Akses ditolak. Tidak ada pengguna terautentikasi." });
-    throw new Error("User not authenticated");
+      .json({ message: "Akses ditolak. Pengguna belum login." });
   }
 
   if (req.user.role !== "admin") {
-    res
+    return res
       .status(403)
-      .json({ message: "Akses ditolak. Admin saja yang diperbolehkan." });
-    throw new Error("User not admin");
+      .json({ message: "Akses ditolak. Hanya admin yang diperbolehkan." });
   }
+
+  next();
 };
 
 module.exports = { verifyToken, verifyAdmin };

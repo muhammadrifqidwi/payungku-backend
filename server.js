@@ -14,19 +14,18 @@ const midtransRoutes = require("./routes/midtransRoutes");
 
 const app = express();
 const corsOptions = {
-  origin: ["https://payungku.vercel.app", "http://localhost:5173"],
+  origin: ["https://payungku.vercel.app"],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 };
-
+connectDB();
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 
 app.use(express.json());
 app.use(cookieParser());
 
-connectDB();
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
