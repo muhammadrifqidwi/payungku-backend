@@ -17,7 +17,6 @@ const verifyToken = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Validasi apakah ID hasil decode adalah ObjectId yang valid
     if (!mongoose.Types.ObjectId.isValid(decoded.id)) {
       return res.status(400).json({ message: "ID token tidak valid" });
     }
@@ -36,7 +35,6 @@ const verifyToken = async (req, res, next) => {
   }
 };
 
-// Middleware untuk verifikasi role admin
 const verifyAdmin = async (req, res, next) => {
   if (!req.user) {
     return res

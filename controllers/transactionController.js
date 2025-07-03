@@ -10,7 +10,7 @@ let snap = new midtransClient.Snap({
 });
 
 function generateLockerCode() {
-  const row = String.fromCharCode(65 + Math.floor(Math.random() * 5)); // A-E
+  const row = String.fromCharCode(65 + Math.floor(Math.random() * 5));
   const num = String(Math.floor(Math.random() * 20)).padStart(2, "0");
   return `${row}-${num}`;
 }
@@ -211,8 +211,8 @@ exports.confirmTransaction = async (req, res) => {
     trx.status = "active";
     trx.rentCode = generateCode();
     trx.lockerCode = generateLockerCode();
-    trx.createdAt = new Date(); // update waktu peminjaman
-    trx.paymentResult = paymentResult; // opsional untuk disimpan
+    trx.createdAt = new Date();
+    trx.paymentResult = paymentResult;
     trx.token = crypto.randomBytes(16).toString("hex");
     trx.tokenExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
@@ -229,6 +229,7 @@ exports.confirmTransaction = async (req, res) => {
 
     res.json({
       message: "Transaksi berhasil dikonfirmasi",
+      lockerCode: trx.lockerCode,
       transaction: fullTrx,
     });
   } catch (err) {
@@ -381,10 +382,9 @@ exports.validateReturn = async (req, res) => {
     const isLate = now > deadline;
     const lateMinutes = isLate ? Math.floor((now - deadline) / 60000) : 0;
 
-    const penaltyAmount = lateMinutes * 500; // misalnya Rp500 per menit
+    const penaltyAmount = lateMinutes * 500;
 
     if (isLate) {
-      // buat snapToken jika belum ada
       let snapToken = transaction.snapToken;
       if (!snapToken) {
         const midtransSnap = new midtransClient.Snap({
@@ -416,7 +416,6 @@ exports.validateReturn = async (req, res) => {
       });
     }
 
-    // Jika tidak telat
     return res.json({
       valid: true,
       isLate: false,

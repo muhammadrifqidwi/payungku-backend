@@ -13,13 +13,11 @@ router.post("/notification", async (req, res) => {
     const statusResponse = await snap.transaction.notification(req.body);
     const { order_id, transaction_status } = statusResponse;
 
-    // Mapping status Midtrans ke status transaksi internal
     let newStatus = "pending";
     if (transaction_status === "settlement") newStatus = "paid";
     else if (transaction_status === "expire" || transaction_status === "cancel")
       newStatus = "cancelled";
 
-    // Update ke database
     await Transaction.findOneAndUpdate(
       { orderId: order_id },
       { paymentStatus: newStatus }
