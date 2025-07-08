@@ -5,13 +5,11 @@ const Location = require("../models/location");
 exports.getAllUsers = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
     const users = await User.find()
       .sort({ updatedAt: -1 })
       .skip(skip)
-      .limit(limit)
       .select("name email role updatedAt")
       .lean();
 
@@ -25,13 +23,11 @@ exports.getAllUsers = async (req, res) => {
 exports.getAllTransactions = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
     const transactions = await Transaction.find()
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit)
       .populate("user", "name")
       .populate("location", "name")
       .select("status createdAt type location user")
