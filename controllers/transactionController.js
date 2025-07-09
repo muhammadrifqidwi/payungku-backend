@@ -258,32 +258,31 @@ exports.returnTransaction = async (req, res) => {
 
     const now = new Date();
     const rentTime = trx.createdAt;
-    const diffMs = now - rentTime;
-    const totalMinutes = Math.floor(diffMs / (1000 * 60));
-    const gracePeriod = 60;
-    const lateMinutes = totalMinutes - gracePeriod;
 
+    // Batas waktu maksimal pengembalian adalah hari yang sama pukul 18:00
+    const batasJam18 = new Date(rentTime);
+    batasJam18.setHours(18, 0, 0, 0);
+
+    const isLate = now > batasJam18;
+    const totalMinutes = Math.floor((now - rentTime) / (1000 * 60));
+    const lateMinutes = isLate
+      ? Math.floor((now - batasJam18) / (1000 * 60))
+      : 0;
+
+    const rentDuration = `${Math.floor(totalMinutes / 60)} jam ${
+      totalMinutes % 60
+    } menit`;
     const returnLockerCode = generateLockerCode();
     trx.returnLockerCode = returnLockerCode;
     trx.returnLocation = returnLocationId;
     trx.returnTime = now;
 
-    const rentDuration = `${Math.floor(totalMinutes / 60)} jam ${
-      totalMinutes % 60
-    } menit`;
-
-    if (lateMinutes > 0) {
-      const fine = Math.ceil(lateMinutes / 30) * 2000;
+    if (isLate) {
+      const fine = Math.ceil(lateMinutes / 30) * 4000;
       trx.status = "late";
       trx.penaltyAmount = fine;
       trx.penaltyStatus = "pending";
       trx.penaltyOrderId = `DENDA-${trx._id}-${Date.now()}`;
-
-      const midtransClient = require("midtrans-client");
-      const snap = new midtransClient.Snap({
-        isProduction: false,
-        serverKey: process.env.MIDTRANS_SERVER_KEY,
-      });
 
       const midtransRes = await snap.createTransaction({
         transaction_details: {
@@ -307,12 +306,13 @@ exports.returnTransaction = async (req, res) => {
       return res.json({
         status: "late",
         denda: fine,
+        snapToken: midtransRes.token,
         returnLockerCode,
         rentDuration,
-        snapToken: midtransRes.token,
       });
     }
 
+    // Tidak terlambat
     trx.status = "returned";
     trx.token = null;
     trx.penaltyStatus = "none";
@@ -352,7 +352,6 @@ exports.validateReturn = async (req, res) => {
     const expired = now - new Date(tokenExpiry) > 5 * 60 * 1000;
 
     if (expired) {
-      // Buat token baru dan simpan
       const newToken = crypto.randomBytes(16).toString("hex");
       transaction.token = newToken;
       transaction.tokenExpiresAt = new Date(now.getTime() + 5 * 60 * 1000);
@@ -366,7 +365,7 @@ exports.validateReturn = async (req, res) => {
       });
     }
 
-    // (1) Validasi lokasi
+    // Validasi lokasi
     if (locationId && transaction.returnLocation.toString() !== locationId) {
       return res.status(400).json({
         valid: false,
@@ -374,51 +373,8 @@ exports.validateReturn = async (req, res) => {
       });
     }
 
-    // (2) Cek keterlambatan
-    const borrowTime = new Date(transaction.borrowTime);
-    const deadline = new Date(
-      borrowTime.getTime() + transaction.duration * 60000
-    );
-    const isLate = now > deadline;
-    const lateMinutes = isLate ? Math.floor((now - deadline) / 60000) : 0;
-
-    const penaltyAmount = lateMinutes * 500;
-
-    if (isLate) {
-      let snapToken = transaction.snapToken;
-      if (!snapToken) {
-        const midtransSnap = new midtransClient.Snap({
-          isProduction: false,
-          serverKey: process.env.MIDTRANS_SERVER_KEY,
-        });
-
-        const parameter = {
-          transaction_details: {
-            order_id: `penalty-${Date.now()}`,
-            gross_amount: penaltyAmount,
-          },
-          credit_card: {
-            secure: true,
-          },
-        };
-
-        const snap = await midtransSnap.createTransaction(parameter);
-        snapToken = snap.token;
-      }
-
-      return res.json({
-        valid: true,
-        isLate: true,
-        denda: penaltyAmount,
-        snapToken,
-        transaction,
-        user: transaction.user,
-      });
-    }
-
     return res.json({
       valid: true,
-      isLate: false,
       transaction,
       user: transaction.user,
     });

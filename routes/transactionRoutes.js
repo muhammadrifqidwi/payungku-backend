@@ -1,5 +1,5 @@
 const express = require("express");
-const router = require("express").Router();
+const router = express.Router();
 const trxCtrl = require("../controllers/transactionController");
 const Transaction = require("../models/transaction");
 const { verifyToken } = require("../middleware/auth");
