@@ -6,6 +6,8 @@ const {
   getAllLocations,
   getDashboardData,
   deleteUser,
+  deleteTransaction,
+  deleteLocation,
 } = require("../controllers/adminController");
 const { verifyToken, verifyAdmin } = require("../middleware/auth");
 
@@ -15,5 +17,7 @@ router.get("/transactions", verifyToken, verifyAdmin, getAllTransactions);
 router.get("/locations", verifyToken, verifyAdmin, getAllLocations);
 
 router.delete("/users/:id", verifyToken, verifyAdmin, deleteUser);
+router.delete("/transactions/:id", verifyToken, verifyAdmin, deleteTransaction);
+router.delete("/locations/:id", verifyToken, verifyAdmin, deleteLocation);
 
 module.exports = router;

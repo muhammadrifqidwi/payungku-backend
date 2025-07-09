@@ -12,7 +12,6 @@ exports.getLocations = async (req, res) => {
 exports.createLocation = async (req, res) => {
   try {
     const { name, latitude, longitude, lockers, stock } = req.body;
-    // Pastikan fields 'lockers' dan 'stock' ada di dalam request
     const newLocation = new Location({
       name,
       latitude,

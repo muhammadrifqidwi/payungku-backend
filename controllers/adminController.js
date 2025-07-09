@@ -95,3 +95,59 @@ exports.deleteUser = async (req, res) => {
     });
   }
 };
+
+exports.deleteTransaction = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validasi ID format
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ message: "Format ID tidak valid." });
+    }
+
+    const deletedTransaction = await Transaction.findByIdAndDelete(id);
+
+    if (!deletedTransaction) {
+      return res.status(404).json({ message: "Transaksi tidak ditemukan." });
+    }
+
+    res.json({
+      message: "Transaksi berhasil dihapus.",
+      deletedTransaction,
+    });
+  } catch (error) {
+    console.error("Error deleting transaction:", error);
+    res.status(500).json({
+      message: "Terjadi kesalahan saat menghapus transaksi.",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
+exports.deleteLocation = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validasi format ID MongoDB
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ message: "Format ID tidak valid." });
+    }
+
+    const deletedLocation = await Location.findByIdAndDelete(id);
+
+    if (!deletedLocation) {
+      return res.status(404).json({ message: "Lokasi tidak ditemukan." });
+    }
+
+    res.json({
+      message: "Lokasi berhasil dihapus.",
+      deletedLocation,
+    });
+  } catch (error) {
+    console.error("Error deleting location:", error);
+    res.status(500).json({
+      message: "Terjadi kesalahan saat menghapus lokasi.",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
