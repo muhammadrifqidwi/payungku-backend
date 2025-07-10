@@ -12,7 +12,7 @@ router.post("/return/confirm", trxCtrl.confirmReturn);
 router.post("/return/late", verifyToken, trxCtrl.handleLateReturnPayment);
 router.post("/penalty", verifyToken, trxCtrl.payPenalty);
 
-router.get("/return/validate/:token", verifyToken, trxCtrl.validateReturn);
+router.get("/return/validate/:token", trxCtrl.validateReturn);
 router.get("/user", verifyToken, trxCtrl.getUserTransactions);
 router.get("/:id", trxCtrl.getTransactionById);
 router.delete("/:id", trxCtrl.deleteTransaction);
