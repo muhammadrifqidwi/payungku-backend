@@ -77,6 +77,8 @@ exports.login = async (req, res) => {
       token,
       role: user.role,
       nama: user.name,
+      phone: user.phone,
+      photo: user.photo,
     });
   } catch (err) {
     console.error("Login error:", err);

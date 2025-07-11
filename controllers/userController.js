@@ -1,4 +1,5 @@
 const User = require("../models/user");
+const Transaction = require("../models/transaction");
 
 exports.getProfile = async (req, res) => {
   try {
@@ -22,9 +23,27 @@ exports.getAllUsers = async (req, res) => {
 exports.getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
-    if (!user) return res.status(404).json({ message: "User tidak ditemukan" });
-    res.json(user);
+    if (!user) {
+      return res.status(404).json({ message: "User tidak ditemukan" });
+    }
+
+    const transactionCount = await Transaction.countDocuments({
+      user: user._id,
+    });
+
+    const latestTransaction = await Transaction.findOne({ user: user._id })
+      .sort({ createdAt: -1 })
+      .select("createdAt");
+
+    const lastTransaction = latestTransaction?.createdAt || null;
+
+    res.json({
+      ...user.toObject(),
+      transactions: transactionCount,
+      lastTransaction,
+    });
   } catch (err) {
+    console.error("Error getUserById:", err);
     res.status(500).json({ message: "Terjadi kesalahan server" });
   }
 };
