@@ -373,10 +373,23 @@ exports.validateReturn = async (req, res) => {
       });
     }
 
+    const rentTime = transaction.createdAt;
+    const totalMinutes = Math.floor((now - rentTime) / (1000 * 60));
+    let duration;
+
+    if (totalMinutes < 60) {
+      duration = `${totalMinutes} menit`;
+    } else {
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      duration = minutes > 0 ? `${hours} jam ${minutes} menit` : `${hours} jam`;
+    }
+
     return res.json({
       valid: true,
       transaction,
       user: transaction.user,
+      duration,
     });
   } catch (err) {
     console.error("❌ Error validasi:", err);
